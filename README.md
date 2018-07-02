@@ -1,1 +1,3 @@
-# color-vision
+# Color Vision
+
+Matlab code for color vision.

@@ -1,4 +1,4 @@
-function INDA = EvalCluster(Inda)
+function INDA = AlphaCluster(Inda)
     id = Inda(:,2);
     L = length(Inda(:,2));
     n = 1;

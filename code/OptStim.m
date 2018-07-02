@@ -1,31 +1,31 @@
-%% OptStim 06/30/2018
+%% OptStim
+% Wentao Huang, 06/30/2018
 %==========================================================================
 clear all
 close all
 clc
 
-%% Init Parameters
 fprintf('\nStart OptStim ...\n');
-%--------------------------------------------------------------------------
+%% Init Parameters
 pdfname = 'CDNS'; % 'CDNS' 'Forest' 'HINS' 'Munsell'
 typeNo = 0; %0;% 1;% 2;% 3;%
-%------------------------------------- 
+%----------------------------
 fileNo = '3-1';% '3-2';%
-postfix = 'a';
-%-------------------------------------
+postfix = 'a';% a b c d
+%----------------------------
 DF = 1;
 DFC = 1;%0.5;%
 Fmin = 380;% >= 380
 Fmax = 700;
 FCmin = 350;%Fmin;%
-FCmax = 565;% 565 570 580 600 700
+FCmax = 565;
 F = [Fmin:DF:Fmax]';
 FC = [FCmin:DFC:FCmax]';
 %% Alpha
 KK = 5;
 if ~ismember({'Alpha'},who) || isempty(Alpha)
-    Inda = [];%[[55, 45]', [429, 555]'];%[[5, 30, 65]', [420, 535, 565]'];%[[25, 25, 25, 25]', [372, 449, 502, 563]'];%[];%[];%[[1, 6, 12]', [430, 540, 565]'];%
-    Alpha = SparseCluster(FC, Inda);
+    Inda = [];%[[55, 45]', [429, 555]'];%[[5, 30, 65]', [420, 535, 565]'];%[[25, 25, 25, 25]', [372, 449, 502, 563]'];%
+    Alpha = ParseCluster(FC, Inda);
 end
 
 %% ------------------------------------------------------------------------
@@ -36,6 +36,7 @@ FontSize = 10;
 LineWidth = 0.5;
 seed = typeNo + 1;
 SampleNum = 10000;
+
 paramGA.Dpeak = 0.3;
 paramGA.Trans = 1;
 paramGA.FgN = 0;
@@ -43,7 +44,7 @@ paramGA.r = 0;
 paramGA.Lc = 1.0;
 paramGA.Mc = 1.0;
 paramGA.isPoly = 0;
-NA = length(FC);
+
 [W, paramGA, WI] = Wpig(FC, F, paramGA);
 
 if ~ismember({'X'},who) || isempty(X)
@@ -79,7 +80,7 @@ if ~ismember({'X'},who) || isempty(X)
     X(X<0) = 0;
     X = X/sum(mean(X,2));
     
-    %% ----------------------------------------------------------------------
+    %% --------------------------------------------------------------------
 %     [NX, SampleNum] = size(X);
 %     LS = 1:SampleNum;
 %     [x2, idx] = sort(sum(X.*X));
@@ -132,20 +133,22 @@ if ~ismember({'X'},who) || isempty(X)
 %     ylabel('Mean of Stimulus Spectra');%Amplitude %of Stimulus Spectra
  
 %     print(HFXm, '-depsc2 ', '-r600',[FigName, '_', 'Xmean','.eps']);
-    %-----------------------------
 end
-%% SVD
+%% ------------------------------------------------------------------------
+NA = length(FC);
 [NX, SampleNum] = size(X);
 xv = mean(X, 2);
 X = X - repmat(xv, 1, SampleNum);
 [U, D, Vd] = svd(X);%
 Vd = [];
-% -----------------------------------------------------
+
 B = W*diag(sqrt(Alpha));
 [Ub, Db, Vb] = svd(B);%
 
-%%
-Uf = Ub;%  U; %
+%% Show figures
+fprintf('Show Figures ... \n');
+
+Uf = Ub;% U;%
 
 if sum(Uf(:,1)) > 0
     Uf = -Uf;
@@ -153,7 +156,6 @@ end
 
 HFPCS = figure('Name',['Uf:', num2str(KK)]);
 hold on
-
 xlim([Fmin,Fmax]);
 plot(F,Uf(:,1),'r-','LineWidth',2)
 plot(F,Uf(:,2),'m-','LineWidth',2)
@@ -204,20 +206,17 @@ ylabel('Principal Components');
 % print(HFPCS, '-depsc2 ', '-r600',[FigName, '.eps']);
 print(HFPCS, '-dtiff', '-r300', [FigName, '.png']);
 
-%% Show figures
-fprintf('Show Figures ... \n');
-
-df = FC(2) - FC(1);
-FCE = [FC', FCmax+df:df:Fmax];
-lenfc = length(FCE);
-indf = find((FCE>=FCmin)&(FCE<=FCmax));
-AlphaE = zeros(lenfc,1);%
-
-AlphaE(indf) = Alpha/sum(Alpha);
-PF = cumsum(AlphaE)/sum(AlphaE);
-PF(indf(end):end) = 1.0;
-%--------------------------------------------------------------------------
-%%
+%% ------------------------------------------------------------------------
+% df = FC(2) - FC(1);
+% FCE = [FC', FCmax+df:df:Fmax];
+% lenfc = length(FCE);
+% indf = find((FCE>=FCmin)&(FCE<=FCmax));
+% AlphaE = zeros(lenfc,1);%
+% 
+% AlphaE(indf) = Alpha/sum(Alpha);
+% PF = cumsum(AlphaE)/sum(AlphaE);
+% PF(indf(end):end) = 1.0;
+%-----------------------------------------------------------
 % HFAPA = figure('Name',['Alpha:',fn]);
 % [AX,H1,H2] = plotyy(FCE,AlphaE,FCE,PF,'plot');%'semilogy',
 % 
@@ -291,6 +290,7 @@ PF(indf(end):end) = 1.0;
 % box off;
 % xlabel('Wavelength (nm)','FontSize', 18,'FontWeight', 'bold','Fontname', 'Times New Roman');
 % ylabel('Normalized Absorbance','FontSize', 18,'FontWeight', 'bold','Fontname', 'Times New Roman');%
+
 % postfix1 = '_t';
 % print(HFFunFL, '-depsc2','-tiff', '-r600', [FigName, postfix1, '.eps']);
 % print(HFFunFL, '-dtiff','-r300',[FigName, postfix1, '.png']);

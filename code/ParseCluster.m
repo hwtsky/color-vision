@@ -1,4 +1,4 @@
-function Alpha = SparseCluster(FC, Inda)
+function Alpha = ParseCluster(FC, Inda)
     %06/30/2018
     NA = length(FC);
     if ~exist('Inda', 'var')  || isempty(Inda)

@@ -7,9 +7,9 @@ function [X, F] = GetDataset(pdfname, pdfparams)
             Fmin = pdfparams.Fmin;
             Fmax = pdfparams.Fmax;
             load(['../data/', 'ugillums.mat'], 'Lambda', 'illums');
+            illums = illums(30, 2:end);
             indx = find((Lambda>=Fmin)&(Lambda<=Fmax));
             F = Lambda(indx);
-            illums = illums(30, 2:end);
 
             if isfield(pdfparams,'r1') 
                 a(1) = pdfparams.r1;

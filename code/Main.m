@@ -1,4 +1,5 @@
-%% Main 06/30/2018
+%% Main 
+% Wentao Huang, 06/30/2018
 %==========================================================================
 clc
 close all
@@ -9,31 +10,31 @@ fprintf('\nStart Main ...\n');
 %--------------------------------------------------------------------------
 pdfname = 'CDNS'; % 'CDNS' 'Forest' 'HINS' 'Munsell'
 typeNo = 0; %0;% 1;% 2;% 3;%
-%------------------------------------- 
+%---------------------------------------------------
 fileNo = '1-1';%'1-2';%'2-1';%'2-2';%
 
-postfix = 'c';
+postfix = 'c';% a b c d e f
 
 a = 170;%100;%130;%%170;%1000;%5000;%10000;
 
 % a = 200;%2000;% 
 
-%-------------------------------------
-MaxIter = 1000;
-SampleNum = 10000;
-epsOP = 1e-300;
-seed = typeNo + 1;
-%-------------------------------------
-KX = 10;%20;%
-DF = 1;
-DFC = 1;%0.5;%
-
+%---------------------------------------------------
 Fmin = 380;% >= 380
 Fmax = 700;
 
 FCmin = 350;%Fmin;% <= Fmin
 FCmax = 565;% 560 565 570 580 600
-%-------------------------------------
+
+DF = 1;
+DFC = 1;%0.5;%
+%-------------------
+KX = 10;%20;%
+MaxIter = 1000;
+SampleNum = 10000;
+epsOP = 1e-300;
+seed = typeNo + 1;
+%-------------------
 paramGA.Dpeak = 0.3;
 paramGA.Trans = 1;
 paramGA.FgN = 0;
@@ -43,25 +44,20 @@ paramGA.Mc = 1.0;%
 paramGA.isPoly = 0;
 
 %--------------------------------------------------------------------------
-%% Load data
-F = [Fmin:DF:Fmax]';
-FC = [FCmin:DFC:FCmax]';
-
-NA = length(FC);
-
-[W, paramGA, WI] = Wpig(FC, F, paramGA);
-
-%--------------------------------------------------------------------------
 fn = [pdfname, '_',num2str(typeNo),'_',num2str(fileNo), ...
       '_', num2str(FCmax),'_', num2str(a)];
-figurename = ['Fig', num2str(fileNo), '_', postfix];%fn;%
+figurename = ['Fig', num2str(fileNo), '_', postfix];% fn;% 
 
 FigName = ['../results/figures/', figurename];
 
 FontSize = 10;
 LineWidth = 0.5;
 
-%% --------------------------------------------------------------------------
+%% load data
+F = [Fmin:DF:Fmax]';
+FC = [FCmin:DFC:FCmax]';
+
+% -------------------------------------------------------------------------
 if ~ismember({'X'},who) || isempty(X)
     pdfparams.typeNo = typeNo;
     pdfparams.Fmin = Fmin;
@@ -96,7 +92,9 @@ if ~ismember({'X'},who) || isempty(X)
     X = X/sum(mean(X,2));
 end
 %% 
+[W, paramGA, WI] = Wpig(FC, F, paramGA);
 [NX, SampleNum] = size(X);
+NA = length(FC);
 
 Param.pdfname = pdfname;
 Param.typeNo = typeNo;
@@ -143,7 +141,7 @@ if ~ismember({'Alpha'},who) || isempty(Alpha)
     Alpha = Alpha/sum(Alpha);
 end
 
-%% Init Algorithem Paramters
+%% Main Loop
 optionsAlpha = optimset('fmincon');
 TypicalAlpha = 0.1*ones(NA,1);
 optionsAlpha.Algorithm = 'interior-point';
@@ -153,9 +151,7 @@ optionsAlpha.TolProjCGAbs = 1e-20;
 optionsAlpha = optimset(optionsAlpha,'LargeScale','on', 'GradObj','on', 'Display','iter', 'TypicalX', TypicalAlpha);
 optionsAlpha = optimset(optionsAlpha, 'Hessian',{'lbfgs',30}, 'ScaleProblem', 'obj-and-constr');
 optionsAlpha = optimset(optionsAlpha, 'TolX', epsOP, 'TolCon', epsOP, 'TolFun', epsOP,'MaxIter', MaxIter);
-%--------------------------------------------------------------------------
-%% Main Loop
-pause(1);
+%----------------------------
 Start = tic;
 funA = @(Alpha)Objfungrad(Alpha, Ww(1:KX,:), epsOP);
 A = [];
@@ -167,10 +163,8 @@ ub = ones(NA,1);
 %----------------------------
 [Alpha, J] = fmincon(funA,Alpha,A,b,Aeq,beq,lb,ub,[],optionsAlpha);
 toc(Start)
-%==========================================================================
-%% Show figures
-fprintf('Show Figures ... \n');
 
+%% ------------------------------------------------------------------------
 df = FC(2) - FC(1);
 FCE = [FC', FCmax+df:df:Fmax];
 lenfc = length(FCE);
@@ -181,11 +175,18 @@ AlphaE(indf) = Alpha/sum(Alpha);
 PF = cumsum(AlphaE)/sum(AlphaE);
 PF(indf(end):end) = 1.0;
 
+%-------------------------------------------------
+fprintf('Cluster of Alpha:\n  Density    Peak\n');
 maxa = 0.001*max(AlphaE);
-Inda = [100*AlphaE(AlphaE>maxa), FCE(AlphaE>maxa)']
-INDA = EvalCluster(Inda)
-%--------------------------------------------------------------------------
-%%
+Cluster = [100*AlphaE(AlphaE>maxa), FCE(AlphaE>maxa)'];
+CLUSTER = AlphaCluster(Cluster);
+for i = 1:size(CLUSTER, 1)
+    fprintf('  %7.4f   %5.1f\n', CLUSTER(i,1), CLUSTER(i,2))
+end
+
+%% Show Figures 
+fprintf('Show Figures ... \n');
+
 HFAPA = figure('Name',['Alpha:', FigName]);
 [AX,H1,H2] = plotyy(FCE,AlphaE,FCE,PF,'plot');%
 
@@ -206,7 +207,7 @@ ylab = [0:0.2:1];%
 ylim(AX(2),[0,1])
 set(AX(2),'ytick',ylab);
 
-%--------------------------------------------------------------------------
+%-----------------------
 set(get(AX(1),'Ylabel'),'String','Population Density {\itp}({\it\theta})')
 set(get(AX(2),'Ylabel'),'String','Cumulative Distribution')
 
@@ -225,7 +226,7 @@ xlabel('Wavelength of Maximum Absorbance {\it{\theta}} (nm)');%Peak Sensitivity
 % print(HFAPA, '-depsc2','-tiff', '-r600', [FigName, '.eps']);
 print(HFAPA, '-dtiff', '-r300', [FigName, '.png']);
 
-%% -----------------------------------------------------------------------
+%% ------------------------------------------------------------------------
 Amax = max(AlphaE);
 AlphaP = AlphaE;
 AlphaP(AlphaE<0.001*Amax) = 0;
@@ -264,10 +265,10 @@ postfix1 = '_t';
 % print(HFFunFL, '-depsc2', '-tiff', '-r600', [FigName, postfix1, '.eps']);
 print(HFFunFL, '-dtiff', '-r300',[FigName, postfix1, '.png']);
 
-%==========================================================================
+%--------------------------------------------------------------------------
 %% Save File
 filename = ['../results/',figurename,'.mat'];
 fprintf('Save File to:  %s \n',filename);
-% save(filename, 'Alpha', 'Param', 'optionsAlpha');% 
+save(filename, 'Alpha', 'F', 'FC', 'Param', 'optionsAlpha');% 
 
 %==========================================================================
